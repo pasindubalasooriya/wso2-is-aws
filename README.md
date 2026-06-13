@@ -1,4 +1,4 @@
-# wso2-is-aws
+# WSO2 Identity Server 7.3 on AWS - Reference architecture
 
 Highly available **WSO2 Identity Server 7.3** on AWS across 2 Availability Zones  defined entirely in Terraform, built to run on the **AWS Free plan (credit-based)** with `$0` out of pocket.
 
