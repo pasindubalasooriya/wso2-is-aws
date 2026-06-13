@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars and edit. terraform.tfvars is gitignored.
+region           = "us-east-1"
+name_prefix      = "wso2is"
+artifacts_bucket = "wso2is-artifacts-<ACCOUNT_ID>"  # from bootstrap output
+admin_cidr       = "203.0.113.4/32"                 # your public IP /32
+
+# Per-session toggles
+db_multi_az = false   # true only for the failover-test session
+enable_waf  = false   # true only for hardening / attack-demo sessions

@@ -1,0 +1,28 @@
+#!/bin/bash
+# Tiny stub: ensure aws CLI, pull the real bootstrap from S3, run it.
+set -uxo pipefail
+exec > /var/log/wso2-bootstrap.log 2>&1
+
+dnf install -y unzip
+if ! command -v aws >/dev/null 2>&1; then
+  curl -sL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/awscliv2.zip
+  unzip -q /tmp/awscliv2.zip -d /tmp
+  /tmp/aws/install
+fi
+export PATH=$PATH:/usr/local/bin
+
+BUCKET="${artifacts_bucket}"
+for i in 1 2 3 4 5; do
+  aws s3 cp "s3://$BUCKET/scripts/bootstrap.sh" /opt/bootstrap.sh --region "${region}" && break || sleep 15
+done
+chmod +x /opt/bootstrap.sh
+
+ARTIFACTS_BUCKET="$BUCKET" \
+DB_SECRET_ID="${db_secret_name}" \
+ADMIN_SECRET_ID="${admin_secret_name}" \
+CLUSTER_TAG="${cluster_tag}" \
+PROXY_PORT="${proxy_port}" \
+SERVER_HOSTNAME="${server_hostname}" \
+EXPECTED_NODE_COUNT="${node_count}" \
+REGION="${region}" \
+bash /opt/bootstrap.sh

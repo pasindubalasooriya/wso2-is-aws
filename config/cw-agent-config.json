@@ -1,0 +1,50 @@
+{
+  "agent": {
+    "metrics_collection_interval": 60,
+    "run_as_user": "root"
+  },
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/opt/wso2is/repository/logs/wso2carbon.log",
+            "log_group_name": "/wso2is/carbon",
+            "log_stream_name": "{instance_id}",
+            "multi_line_start_pattern": "TID:",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/opt/wso2is/repository/logs/audit.log",
+            "log_group_name": "/wso2is/audit",
+            "log_stream_name": "{instance_id}",
+            "multi_line_start_pattern": "TID:",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/opt/wso2is/repository/logs/http_access_*.log",
+            "log_group_name": "/wso2is/http-access",
+            "log_stream_name": "{instance_id}",
+            "timezone": "UTC"
+          }
+        ]
+      }
+    }
+  },
+  "metrics": {
+    "namespace": "WSO2IS",
+    "append_dimensions": {
+      "InstanceId": "${aws:InstanceId}"
+    },
+    "aggregation_dimensions": [[]],
+    "metrics_collected": {
+      "mem": {
+        "measurement": ["mem_used_percent"]
+      },
+      "disk": {
+        "measurement": ["used_percent"],
+        "resources": ["/"]
+      }
+    }
+  }
+}

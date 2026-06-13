@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WSO2 IS — Demo Login (OIDC + PKCE)</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #1a1a1a; }
+    h1 { font-size: 1.4rem; }
+    button { font-size: 1rem; padding: 10px 18px; border: 0; border-radius: 8px; background: #ff6a00; color: #fff; cursor: pointer; }
+    button.secondary { background: #444; }
+    pre { background: #0d1117; color: #c9d1d9; padding: 16px; border-radius: 8px; overflow: auto; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 20px; margin-top: 16px; }
+    label { display:block; font-size:.85rem; color:#666; margin-top:8px; }
+    input { width: 100%; padding: 8px; box-sizing: border-box; }
+    .ok { color: #137333; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <h1>🔐 Demo App — "Sign in with WSO2 Identity Server"</h1>
+  <p>A minimal single-page app that logs in through <b>your</b> IdP using OpenID Connect
+     (authorization code + PKCE), then shows the identity it received.</p>
+
+  <div class="card" id="config-card">
+    <b>Config</b> (saved in your browser):
+    <label>IdP base URL (your ALB)</label>
+    <input id="issuer" placeholder="https://&lt;alb-dns&gt;" />
+    <label>Client ID (from the registered OIDC app)</label>
+    <input id="clientId" placeholder="xxxxxxxx" />
+    <label>Redirect URI (must match the app; this page's URL)</label>
+    <input id="redirectUri" />
+    <button onclick="saveConfig()" style="margin-top:12px">Save config</button>
+  </div>
+
+  <div class="card">
+    <button onclick="login()">Login with WSO2 IS</button>
+    <button class="secondary" onclick="logout()">Clear session</button>
+  </div>
+
+  <div class="card" id="result" style="display:none">
+    <p class="ok">✅ Logged in — identity received from your IdP:</p>
+    <pre id="claims"></pre>
+  </div>
+
+<script>
+// ---- tiny config store ----
+const cfgKeys = ["issuer","clientId","redirectUri"];
+function loadCfg(){ const c={}; cfgKeys.forEach(k=>c[k]=localStorage.getItem("oidc_"+k)||""); return c; }
+function saveConfig(){ cfgKeys.forEach(k=>localStorage.setItem("oidc_"+k, document.getElementById(k).value.trim())); alert("Saved."); }
+(function initForm(){ const c=loadCfg(); document.getElementById("issuer").value=c.issuer;
+  document.getElementById("clientId").value=c.clientId;
+  document.getElementById("redirectUri").value=c.redirectUri||location.origin+location.pathname; })();
+
+// ---- PKCE helpers ----
+function rnd(n){ const a=new Uint8Array(n); crypto.getRandomValues(a);
+  return btoa(String.fromCharCode(...a)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+async function sha256b64url(s){ const d=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return btoa(String.fromCharCode(...new Uint8Array(d))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+
+async function login(){
+  const c=loadCfg();
+  if(!c.issuer||!c.clientId){ alert("Set config first."); return; }
+  const verifier=rnd(40); sessionStorage.setItem("pkce_verifier",verifier);
+  const challenge=await sha256b64url(verifier);
+  const url=new URL(c.issuer.replace(/\/$/,'')+"/oauth2/authorize");
+  url.search=new URLSearchParams({ response_type:"code", client_id:c.clientId,
+    redirect_uri:c.redirectUri, scope:"openid profile email",
+    code_challenge:challenge, code_challenge_method:"S256" });
+  location.href=url.toString();
+}
+
+function logout(){ sessionStorage.clear(); document.getElementById("result").style.display="none"; history.replaceState({},"",location.pathname); }
+
+async function handleCallback(){
+  const p=new URLSearchParams(location.search);
+  const code=p.get("code"); if(!code) return;
+  const c=loadCfg(); const verifier=sessionStorage.getItem("pkce_verifier");
+  const body=new URLSearchParams({ grant_type:"authorization_code", code,
+    redirect_uri:c.redirectUri, client_id:c.clientId, code_verifier:verifier });
+  const r=await fetch(c.issuer.replace(/\/$/,'')+"/oauth2/token",{ method:"POST",
+    headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
+  const tok=await r.json();
+  if(tok.id_token){
+    const claims=JSON.parse(atob(tok.id_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    document.getElementById("claims").textContent=JSON.stringify(claims,null,2);
+    document.getElementById("result").style.display="block";
+  } else {
+    document.getElementById("claims").textContent="Token exchange failed:\n"+JSON.stringify(tok,null,2);
+    document.getElementById("result").style.display="block";
+  }
+  history.replaceState({},"",location.pathname);
+}
+handleCallback();
+</script>
+</body>
+</html>
