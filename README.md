@@ -3,6 +3,9 @@
 Highly available **WSO2 Identity Server 7.3** on AWS across 2 Availability Zones  defined entirely in Terraform, built to run on the **AWS Free plan (credit-based)** with `$0` out of pocket.
 
 
+Read the relevant blog [here](https://medium.com/@pasindudilshanbalasooriya/how-i-ran-a-real-identity-server-on-aws-without-spending-a-cent-f7c304478129?postPublishedType=repub)
+
+
 ## Proven (verified live)
 
 - ✅ 2-node WSO2 IS cluster across 2 AZs behind an HTTPS ALB, both targets healthy, single Hazelcast cluster
